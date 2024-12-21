@@ -27,7 +27,7 @@ steps:
 
 - task: AzureWebApp@1
   inputs:
-    azureSubscription: 'Azure for Students'
+    azureSubscription: 7d7b983b-8c2d-4580-8db1-61a826f567c6
     appType: 'webAppLinux'
     appName: 'testAzure'
     package: '$(Build.ArtifactStagingDirectory)' 
