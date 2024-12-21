@@ -7,7 +7,9 @@ trigger:
 - main
 
 pool:
-  vmImage: azp-agent:windows
+  name: Default
+  demands:
+    - agent.name -equals "Docker Agent - Windows"
 
 steps:
 - script: echo Hello, world!
