@@ -7,7 +7,7 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: azp-agent:windows
 
 steps:
 - script: echo Hello, world!
