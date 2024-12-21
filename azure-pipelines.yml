@@ -1,4 +1,3 @@
-# azure-pipelines.yml
 trigger:
 - main
 
@@ -7,29 +6,62 @@ pool:
   demands:
     - agent.name -equals azure-agent
 
-steps:
-- task: UseNode@1
-  inputs:
-    version: '16.x'
+stages:
+- stage: Lint
+  displayName: "Lint Stage"
+  jobs:
+  - job: LintJob
+    displayName: "Run ESLint on JavaScript Files"
+    container:
+      image: node:20-alpine
+    steps:
+    - script: |
+        npm install eslint
+        npx eslint sources/*.js
+      displayName: "Run ESLint"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: sources/
+        artifactName: linted-files
+        publishLocation: pipeline
+      displayName: "Publish Lint Results"
 
-- script: npm install
-  displayName: 'Instalar dependencias'
+- stage: UnitTests
+  displayName: "Unit Test Stage"
+  jobs:
+  - job: UnitTestJob
+    displayName: "Run .NET Unit Tests"
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:7.0
+    steps:
+    - script: |
+        dotnet restore
+        dotnet test --logger "trx;LogFileName=test-results.xml"
+      displayName: "Run .NET Unit Tests"
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: "JUnit"
+        testResultsFiles: "**/test-results.xml"
+      displayName: "Publish Unit Test Results"
 
-- script: npm test
-  displayName: 'Ejecutar pruebas'
-
-- script: npm run build
-  displayName: 'Construir aplicación'
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    pathToPublish: $(Build.ArtifactStagingDirectory)
-    artifactName: drop
-    publishLocation: 'Container'
-
-- task: AzureWebApp@1
-  inputs:
-    azureSubscription: 7d7b983b-8c2d-4580-8db1-61a826f567c6
-    appType: 'webAppLinux'
-    appName: 'testAzure'
-    package: '$(Build.ArtifactStagingDirectory)' 
+- stage: Package
+  displayName: "Package Stage"
+  jobs:
+  - job: PackageJob
+    displayName: "Build and Package Java Project"
+    container:
+      image: maven:3.9-eclipse-temurin-17-alpine
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: linted-files
+        targetPath: $(Build.ArtifactStagingDirectory)/sources
+      displayName: "Download Lint Results"
+    - script: |
+        mvn clean package -DoutputDirectory=$(Build.ArtifactStagingDirectory)/output
+      displayName: "Run Maven Build"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: $(Build.ArtifactStagingDirectory)/output
+        artifactName: packaged-application
+      displayName: "Publish Packaged Application"
