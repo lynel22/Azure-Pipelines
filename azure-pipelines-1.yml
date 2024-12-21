@@ -9,7 +9,7 @@ trigger:
 pool:
   name: Default
   demands:
-    - agent.name -equals "Docker Agent - Windows"
+    - agent.name -equals azure-agent
 
 steps:
 - script: echo Hello, world!
